@@ -48,3 +48,18 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET(req:NextRequest){
+  try {
+    const response = await fetch(
+      "https://freetestapi.com/api/v1/movies?page=1&limit=12"
+    );
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    return NextResponse.json(
+      { error: "An error occurred while fetching the movies" },
+      { status: 500 }
+    );
+  }
+}

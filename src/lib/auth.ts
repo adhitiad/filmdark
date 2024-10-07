@@ -1,5 +1,5 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import bcrypt from "bcrypt";
+import { hash } from "crypto";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
@@ -47,18 +47,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("User not found");
         }
 
-        const passwordMatch: any = bcrypt.compare(
-          password,
-          userDoc.hashedPassword
-        );
+const passwordMatch = hash(password, userDoc.salt)
 
         if (!passwordMatch) {
           throw new Error("Invalid password");
         }
 
         return userDoc;
-      },
-    }),
+      },    }),
   ],
   secret: process.env.NEXT_PUBLIC_AUTH_SECRET,
   logger: {
