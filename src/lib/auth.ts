@@ -1,36 +1,62 @@
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import bcrypt from "bcrypt";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
+import { ZodError } from "zod";
+import { signInSchema } from "../types/user";
 import prisma from "./prisma";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma as any),
   providers: [
     Google,
     Credentials({
-      name: "Credentials",
       credentials: {
         email: {
           label: "Email",
           type: "email",
           placeholder: "jsmith@example.com",
         },
-        password: { label: "Password", type: "password" },
+        password: {
+          label: "Password",
+          type: "password",
+          placeholder: "********",
+        },
       },
-      async authorize(credentials: any | undefined) {
-        if (!credentials?.email) {
-          return null;
+      async authorize(credentials) {
+        const parsedCredentials = signInSchema.safeParse(credentials);
+
+        if (!parsedCredentials.success) {
+          const zodError = parsedCredentials.error as ZodError;
+          throw new Error(zodError.errors[0].message);
         }
-        const user = await prisma.user.findFirst({
+
+        const { email, password } = parsedCredentials.data;
+
+        const userDoc: any = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email,
+          },
+          include: {
+            watchHistory: true,
           },
         });
-        if (user) {
-          return user;
+
+        if (!userDoc) {
+          throw new Error("User not found");
         }
-        return null;
+
+        const passwordMatch: any = bcrypt.compare(
+          password,
+          userDoc.hashedPassword
+        );
+
+        if (!passwordMatch) {
+          throw new Error("Invalid password");
+        }
+
+        return userDoc;
       },
     }),
   ],
