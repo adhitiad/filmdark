@@ -11,6 +11,23 @@ export default function Home() {
         Start Browsing
       </Link>
 
+      <hr className="my-5" />
+      <h2 className="text-2xl font-bold mb-4">Watch Trailer</h2>
+      {/* Embedding the video player */}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+        <div className="relative h-64 w-72 overflow-hidden rounded-lg shadow-md">
+          <Link className="hover:opacity-80 transition-all fade-in duration-300 hover:scale-105 hover:cursor-pointer" href="https://dood.li/e/qjks88z2vhft">
+            <img src="/2024-10-09.png" alt="Movie Trailer" className="w-full h-full object-cover" />
+          </Link>
+        </div>
+        <div className="relative h-64 w-72 overflow-hidden rounded-lg shadow-md">
+          <Link className="hover:opacity-80 transition-all fade-in duration-300 hover:scale-105 hover:cursor-pointer" href="https://dood.li/e/611zlb91dswr">
+            <img src="https://img.doodcdn.co/splash/y5tt360oqqj18hoj.jpg" alt="Movie Trailer" className="w-full h-full object-cover" />
+          </Link>
+        </div>
+      </div>
       <hr className="my-8" />
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4">Top Rated Movies</h2>

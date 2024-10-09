@@ -15,7 +15,9 @@ export async function middleware(request: NextRequest) {
     !currenPath.startsWith(authPath) &&
     !currenPath.startsWith(homePath)
   ) {
-    return NextResponse.redirect(new URL(loginPath, request.url));
+    return NextResponse.redirect(
+      new URL(`/${loginPath}?callbackUrl=${currenPath}`, request.url)
+    );
   }
 }
 
