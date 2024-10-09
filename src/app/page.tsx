@@ -33,9 +33,6 @@ export default function Home() {
         <h2 className="text-2xl font-bold mb-4">Top Rated Movies</h2>
         <MovieList />
       </div>
-
-
-
     </main>
   );
 }
