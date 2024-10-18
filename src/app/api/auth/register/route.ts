@@ -1,65 +1,44 @@
 import prisma from "@/lib/prisma";
-import { createHash } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
+import { NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
-    const hashedPasswords = await createHash(
-      "sha256",
-      password
-    ).digest("hex");
-
-    const existingUser = await prisma.user.findUnique({
+    const doesEmailExist = await prisma.user.findUnique({
       where: {
-        email,
+        email: email,
       },
     });
 
-    if (existingUser) {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    if (doesEmailExist) {
       return NextResponse.json(
-        { error: "User already exists" },
+        { error: "Email already exists" },
         { status: 400 }
       );
     }
 
-    const user = await prisma.user.create({
+    const createAccount = await prisma.user.create({
       data: {
-        email,
-        hashedPassword: hashedPasswords,
+        email: email,
+        password: hashedPassword,
       },
     });
 
-    return NextResponse.json({
-      message: "User created successfully",
-      success: true,
-      status: 201,
-      user: {
-        id: user.id,
-        email: user.email,
-      },
-    });
+    if (!createAccount) {
+      return NextResponse.json(
+        { error: "Error creating account" },
+        { status: 400 }
+      );
+    } else if (createAccount) {
+      return NextResponse.json({ success: "Account created" }, { status: 200 });
+    }
+
+    return NextResponse.json({ success: "Account created" }, { status: 200 });
   } catch (error: any) {
-    return NextResponse.json(
-      { error: "An error occurred while creating the user" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req:NextRequest){
-  try {
-    const response = await fetch(
-      "https://freetestapi.com/api/v1/movies?page=1&limit=12"
-    );
-    const data = await response.json();
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "An error occurred while fetching the movies" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

@@ -1,34 +1,29 @@
-import NextAuth from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import GitHub from "next-auth/providers/github";
+import Google from "next-auth/providers/google";
+import prisma from "./prisma";
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { auth, handlers, signIn, signOut } = NextAuth({
+  session: {
+    strategy: "jwt",
+  },
   adapter: PrismaAdapter(prisma),
-  secret: process.env.NEXT_PUBLIK_AUTH_SECRET,
   providers: [
+    GitHub,
+    Google,
     Credentials({
       name: "Credentials",
       credentials: {
-        email: {
-          label: "Email",
-          type: "email",
-          placeholder: "jsmith23@gmail.com",
-        },
-        password: { label: "Password", type: "password" },
+        email: {},
+        password: {},
       },
-      async authorize(credentials: any) {
-        if (!credentials?.email) {
-          return null;
-        }
-
-        if (!credentials?.password) {
-          return null;
-        }
-
+      async authorize(credentials, req) {
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email: credentials?.email as string,
           },
         });
 
@@ -36,17 +31,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        return user;
+        const passwordCorrect = await bcrypt.compare(
+          credentials?.password as string,
+          user?.password as string
+        );
+
+        if (passwordCorrect) {
+          return {
+            id: user?.id.toString(),
+            email: user?.email,
+          };
+        }
+
+        console.log("credentials", credentials);
+        return null;
       },
     }),
   ],
+
   callbacks: {
-    async session({ session, user }) {
-      session.user = user;
-      return session;
+    jwt: async ({ user, token, trigger, session }) => {
+      if (trigger === "update") {
+        return { ...token, ...session.user };
+      }
+      return { ...token, ...user };
     },
-  },
-  session: {
-    strategy: "jwt",
   },
 });

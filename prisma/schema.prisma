@@ -1,162 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
-}
-
-model User {
-  id             String    @id @default(cuid())
-  name           String?
-  email          String?   @unique
-  emailVerified  DateTime?
-  image          String?
-  hashedPassword String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  role           Role      @default(USER)
-  ipAddress      String?
-
-  watchHistory WatchHistory[]
-  ratings      Rating[]
-  comments     Comment[]
-
-  accounts      Account[]
-  sessions      Session[]
-  // Optional for WebAuthn support
-  Authenticator Authenticator[]
-}
-
-model Account {
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([provider, providerAccountId])
-}
-
-model Session {
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-
-  @@id([identifier, token])
-}
-
-// Optional for WebAuthn support
-model Authenticator {
-  credentialID         String  @unique
-  userId               String
-  providerAccountId    String
-  credentialPublicKey  String
-  counter              Int
-  credentialDeviceType String
-  credentialBackedUp   Boolean
-  transports           String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@id([userId, credentialID])
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Movie {
-  id           String         @id @default(cuid())
-  title        String
-  description  String?
-  releaseYear  Int?
-  duration     Int?
-  trailerUrl   String?
-  posterUrl    String
-  videoUrl     String
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  genres       Genre[]
-  tags         Tag[]
-  country      Country        @relation(fields: [countryId], references: [id])
-  countryId    String
-  watchHistory WatchHistory[]
-  ratings      Rating[]
-  comments     Comment[]
+  id          String     @id @default(cuid())
+  title       String     @db.VarChar(255)
+  description String?    @db.Text
+  poster      String?
+  trailer     String?
+  releaseDate DateTime?
+  duration    Int?       @map("duration")
+  rating      Float?     @default(0.0)
+  views       Int        @default(0)
+  isFeatured  Boolean    @default(false)
+  genres      Genre[]    @relation("MovieGenre")
+  tags        Tag[]      @relation("MovieTag")
+  countries   Country[]  @relation("MovieCountry")
+  actors      Actor[]    @relation("MovieActor")
+  directors   Director[] @relation("MovieDirector")
+  comments    Comment[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }
 
 model Genre {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  movies Movie[]
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(100)
+  movies    Movie[]  @relation("MovieGenre")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Tag {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  movies Movie[]
+  id        String   @id @default(cuid())
+  name      String   @unique @db.VarChar(100)
+  movies    Movie[]  @relation("MovieTag")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Country {
-  id     String  @id @default(cuid())
-  name   String  @unique
-  movies Movie[]
-}
-
-model WatchHistory {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  movie     Movie    @relation(fields: [movieId], references: [id])
-  movieId   String
-  watchTime Int
+  name      String   @unique @db.VarChar(100)
+  code      String?  @unique @db.VarChar(2) // Kode negara (e.g., US, ID)
+  movies    Movie[]  @relation("MovieCountry")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Rating {
+model Actor {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  movie     Movie    @relation(fields: [movieId], references: [id])
-  movieId   String
-  value     Int
+  name      String   @db.VarChar(255)
+  image     String?
+  movies    Movie[]  @relation("MovieActor")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Director {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(255)
+  image     String?
+  movies    Movie[]  @relation("MovieDirector")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  name      String?
+  role      String    @default("user")
+  ipAddress String?
+  image     String?
+  comments  Comment[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Comment {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
+  content   String   @db.Text
   movie     Movie    @relation(fields: [movieId], references: [id])
   movieId   String
-  content   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-enum Role {
-  USER
-  ADMIN
 }

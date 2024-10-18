@@ -1,19 +1,22 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 
 // This function can be marked `async` if using `await` inside
 export async function middleware(request: NextRequest) {
   const session = await auth();
   const authPath = "/api/auth/";
-  const loginPath = "/api/auth/signin";
+  const loginPath = "/login/";
+  const registerPath = "/register/";
   const homePath = "/";
   const currenPath = request.nextUrl.pathname;
 
   if (
     !session &&
     !currenPath.startsWith(authPath) &&
-    !currenPath.startsWith(homePath)
+    !currenPath.startsWith(homePath) &&
+    !currenPath.startsWith(loginPath) &&
+    !currenPath.startsWith(registerPath)
   ) {
     return NextResponse.redirect(
       new URL(`/${loginPath}?callbackUrl=${currenPath}`, request.url)
